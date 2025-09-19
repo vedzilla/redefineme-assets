@@ -1,5 +1,5 @@
-const CACHE_NAME = 'redefine-me-v1';
-const OFFLINE_URL = '/';
+const CACHE_NAME = "redefine-me-v1";
+const OFFLINE_URL = "/";
 
 // Install event
 self.addEventListener('install', event => {
@@ -29,71 +29,44 @@ self.addEventListener('fetch', event => {
 
 // Push notification handling
 self.addEventListener('push', event => {
-  console.log('[SW] Push received');
-  
-  const options = {
-    body: 'You have a new notification!',
-    icon: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png',
-    badge: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png',
-    data: { url: '/' },
-    tag: 'redefine-notification'
-  };
-
-  if (event.data) {
-    const data = event.data.json();
-    options.body = data.body || data.message || options.body;
-    options.data.url = data.url || '/';
+  console.log('[SW] Push Received');
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { title: 'Redefine Me', body: event.data ? event.data.text() : 'New notification' };
   }
 
-  event.waitUntil(
-    self.registration.showNotification('Redefine Me', options)
-  );
+  const title = data.title || 'Redefine Me';
+  const options = {
+    body: data.message || data.body || 'You have a new notification',
+    icon: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png',
+    badge: 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png',
+    data: { url: data.url || '/' },
+    requireInteraction: true,
+    tag: 'redefine-me-notification'
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Notification click handling
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] Notification clicked');
+  console.log('[SW] Notification click received');
   event.notification.close();
   
-  const urlToOpen = event.notification.data.url || '/';
+  const urlToOpen = event.notification.data?.url || '/';
   
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(clientList => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
+        if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
       }
     })
   );
 });
-File: public/manifest.json
-
-{
-  "name": "Redefine Me",
-  "short_name": "RedefineMe",
-  "description": "Connect with like-minded students",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "icons": [
-    {
-      "src": "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68ac5b58346cf469a3ecdd69/63091d88b_redefine-me-transparent.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
-}
